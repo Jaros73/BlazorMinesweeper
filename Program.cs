@@ -1,4 +1,5 @@
 using BlazorMinesweeper.Components;
+using MudBlazor.Services;
 
 namespace BlazorMinesweeper
 {
@@ -11,6 +12,7 @@ namespace BlazorMinesweeper
             // Add services to the container.
             builder.Services.AddRazorComponents()
                 .AddInteractiveServerComponents();
+            builder.Services.AddMudServices();
 
             var app = builder.Build();
 
