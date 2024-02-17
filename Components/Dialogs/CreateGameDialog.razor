@@ -1,0 +1,64 @@
+﻿@using System.ComponentModel.DataAnnotations;
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @bind-IsValid="@_success" @bind-Errors= "@_errors">
+            <MudTextField @bind-Value = "@_toCreate.Name"
+            T="string"
+            Label="Název hry"
+            Margin="Margin.Dense"
+            Required="true" />
+            <MudNumericField @bind-Value="@_toCreate.MinesCount"
+                             T="int"
+                             Label="Počet min"
+                             Margin="Margin.Dense"
+                             Required="true"
+                             Min="1"
+                             Max="99" />
+        </MudForm>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel" Size="Size.Medium">Zrušit</MudButton>
+        <MudButton Color="Color.Primary"
+        Variant="Variant.Filled"
+        OnClick="Submit"
+        Size="Size.Medium"
+        Disabled="@(!_success)">Uložit</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] MudDialogInstance _mudDialog { get; set; } = null;
+    [Inject] private ISnackbar _snackbar { get; set; }
+    [Inject] private GamesClient _client { get; set; }
+
+    private bool _success;
+    private string[] _errors = { };
+    public GameInputDto _toCreate = new();
+
+    private async Task Submit()
+    {
+        if (!_success)
+            return;
+
+        int? createdId = null;
+        try
+        {
+            createdId = await _client.Create(_toCreate);
+        }
+        catch(Exception e)
+        {
+            _snackbar.Add(e.Message, Severity.Error);
+        }
+
+        if (createdId is null)
+            _mudDialog.Cancel();
+
+        _mudDialog.Close(DialogResult.Ok(createdId));
+    }
+
+    private void Cancel()
+    => _mudDialog.Cancel();
+
+}

@@ -1,0 +1,110 @@
+﻿@page "/games/{GameId:int?}"
+
+<PageTitle>Hra</PageTitle>
+
+<MudChip Style="float: right;">
+    <MudButton Color="@Color.Primary"
+               OnClick="ShowReturnGames"
+               Variant="Variant.Filled"
+               StartIcon="@Icons.Material.Filled.ArrowBack">
+        Zpět
+    </MudButton>
+</MudChip>
+
+@if (_loading)
+{
+    <div style="text-align:center; padding: 20px;">
+        <MudProgressCircular Indeterminate="true" />
+        <p><em>Načítám...</em></p>
+    </div>
+}
+else
+{
+    <MudGrid>
+        @for (int row = 0; row < 10; row++)
+        {
+            <MudItem xs="12" Class="custom-grid-item">
+                @for (int col = 0; col < 10; col++)
+                {
+                    <MudButton OnClick="@(() => OnCellClick(row, col))"
+                               Color="Color.Primary"
+                               Variant="Variant.Filled"
+                               Class="custom-button">
+                        @if (string.IsNullOrEmpty(GetCellDisplay(row, col)))
+                        {
+                            @: &nbsp;
+                        }
+                        else
+                        {
+                            @GetCellDisplay(row, col)
+                        }
+                    </MudButton>
+                }
+            </MudItem>
+        }
+    </MudGrid>
+
+    if (_game == null)
+    {
+        <p><em>Hra nenalezena.</em></p>
+    }
+    else
+    {
+        <h1>Načtena hra @_game.Name</h1>
+    }
+}
+
+@code {
+    [Inject] private NavigationManager _navigationManager { get; set; } = null!;
+    [Inject] private GamesClient _client { get; set; } = null!;
+    [Parameter] public int? GameId { get; set; }
+    [Parameter] public GameFieldDto[,] Board { get; set; }
+    private GameDto? _game;
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _game = await _client.Find(GameId ?? 0);
+        if (_game is null)
+            _navigationManager.NavigateTo("game/not-found");
+
+        _loading = false;
+    }
+
+    private void ShowReturnGames()
+    {
+        _navigationManager.NavigateTo("/game");
+    }
+
+    private void OnCellClick(int row, int col)
+    {
+        
+    }
+
+    private string GetCellDisplay(int row, int col)
+    {
+        // Kontrola, zda je Board null nebo mimo rozsah
+        if (Board == null || row < 0 || row >= Board.GetLength(0) || col < 0 || col >= Board.GetLength(1))
+        {
+            return ""; // Vrátí prázdný řetězec, pokud Board je null nebo indexy jsou mimo rozsah
+        }
+
+        var cell = Board[row, col];
+
+        // Kontrola, zda je buňka null
+        if (cell == null)
+        {
+            return ""; // Buňka je null, vrátí prázdný řetězec
+        }
+
+        if (!cell.IsRevealed)
+        {
+            return ""; // Buňka ještě nebyla odhalena
+        }
+        if (cell.HasMine)
+        {
+            return "💣";
+        }
+        return cell.MinesCount > 0 ? cell.MinesCount.ToString() : "";
+    }
+}

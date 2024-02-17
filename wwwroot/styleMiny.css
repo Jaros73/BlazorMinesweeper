@@ -1,0 +1,21 @@
+﻿.custom-button {
+    width: 40px !important;
+    height: 40px !important;
+    margin: 1px !important;
+    padding: 0px !important;
+    border: none !important;
+    box-sizing: border-box !important;
+}
+
+.custom-grid-item {
+    padding: 0px !important;
+}
+
+.mud-grid {
+    margin: 0px !important;
+    padding: 0px !important;
+}
+
+    .mud-grid > .mud-grid-item {
+        margin-bottom: 0px !important;
+    }

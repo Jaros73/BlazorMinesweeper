@@ -1,0 +1,74 @@
+﻿@page "/game"
+
+<PageTitle>Hry</PageTitle>
+
+<h1>Hry</h1>
+
+<MudChip Style="float: right;">
+    <MudIconButton Icon="@Icons.Material.Filled.Add"
+    Color="@Color.Primary"
+    OnClick="ShowAddGameDialog" />
+</MudChip>
+
+@if (_loading)
+{
+<div style="text-align:center; padding: 20px;">
+    <MudProgressCircular Indeterminate="true" />
+    <p><em>Načítám...</em></p>
+</div>
+}
+else if (_games.Length == 0)
+{
+<p>Nebyly nalezeny žádné hry.</p>
+}
+else
+{
+<MudTable Items="@_games" Hover="true" Breakpoint="Breakpoint.Sm" Loading="@_loading" LoadingProgressColor="Color.Info">
+    <HeaderContent>
+        <MudTh>Název</MudTh>
+        <MudTh>Id</MudTh>
+        <MudTh>Stav hry</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Název">@if (context.State == "Active")
+            {
+                <a href="games/@context.Id">@context.Name</a>
+            }
+            else
+            {
+                <span>@context.Name</span>
+            }</MudTd>
+            <MudTd DataLabel="Id">@context.Id</MudTd>
+            <MudTd DataLabel="Stav hry">@context.State</MudTd>
+        </RowTemplate>
+    </MudTable>
+    }
+
+
+@code {
+    [Inject] private IDialogService _dialogService { get; set; } = null!;
+    [Inject] private GamesClient _client { get; set; } = null!;
+    private GameDto[] _games = Array.Empty<GameDto>();
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshGames();
+    }
+
+    private async Task RefreshGames()
+    {
+        _loading = true;
+        _games = await _client.FindAll() ?? Array.Empty<GameDto>();
+        _loading = false;
+    }
+
+    private async Task ShowAddGameDialog()
+    {
+        var dialog = _dialogService.Show<CreateGameDialog>("Vytvořit novou hru");
+        var result = await dialog.Result;
+        if (result.Canceled)
+            return;
+            await RefreshGames();
+    }
+}
