@@ -38,7 +38,7 @@ public class GamesClient
             throw new Exception(await result.Content.ReadAsStringAsync());
 
         var location = result.Headers.Location;
-        if (location != null)
+        if (location is null)
             return null;
         var lastSlash = location.OriginalString.LastIndexOf('/');
         var success = int.TryParse(location?.OriginalString.Substring(lastSlash + 1), out var id);
