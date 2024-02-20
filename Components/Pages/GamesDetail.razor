@@ -20,29 +20,38 @@
 }
 else
 {
-    <MudGrid>
-        @for (int row = 0; row < 10; row++)
-        {
-            <MudItem xs="12" Class="custom-grid-item">
-                @for (int col = 0; col < 10; col++)
+    @for (int row = 0; row < 10; row++)
+    {
+        int localRow = row;
+        <MudItem xs="12" Class="custom-grid-item">
+            @for (int col = 0; col < 10; col++)
+            {
+                int localCol = col; // Vytvoření lokální kopie pro col
+                if (Board != null && Board.GetLength(0) > localRow && Board.GetLength(1) > localCol)
                 {
-                    <MudButton OnClick="@(() => OnCellClick(row, col))"
-                               Color="Color.Primary"
+                    var cell = Board[localRow, localCol];
+                    var cellDisplay = GetCellDisplay(localRow, localCol);
+                    var buttonColor = GetButtonColor(cell); // Použití metody GetButtonColor pro určení barvy tlačítka
+
+                    <MudButton OnClick="@(() => OnCellClick(localRow, localCol))"
+                               Color="@buttonColor"
                                Variant="Variant.Filled"
                                Class="custom-button">
-                        @if (string.IsNullOrEmpty(GetCellDisplay(row, col)))
+                        @if (string.IsNullOrEmpty(cellDisplay))
                         {
                             @: &nbsp;
                         }
                         else
                         {
-                            @GetCellDisplay(row, col)
+                            @cellDisplay
                         }
                     </MudButton>
                 }
-            </MudItem>
-        }
-    </MudGrid>
+            }
+        </MudItem>
+    }
+
+
 
     if (_game == null)
     {
@@ -55,6 +64,7 @@ else
 }
 
 @code {
+    [Inject] private ISnackbar _snackbar { get; set; }
     [Inject] private NavigationManager _navigationManager { get; set; } = null!;
     [Inject] private GamesClient _client { get; set; } = null!;
     [Parameter] public int? GameId { get; set; }
@@ -67,7 +77,7 @@ else
         _game = await _client.Find(GameId ?? 0);
         if (_game is null)
             _navigationManager.NavigateTo("game/not-found");
-
+        Board = new GameFieldDto[10, 10];
         _loading = false;
     }
 
@@ -76,10 +86,60 @@ else
         _navigationManager.NavigateTo("/game");
     }
 
-    private void OnCellClick(int row, int col)
+    private async Task OnCellClick(int row, int col)
     {
-        
+        var input = new GameClickDto
+            {
+                GameId = _game?.Id ?? 0,
+                X = row,
+                Y = col
+            };
+
+        try
+        {
+            var success = await _client.ClickGame(_game?.Id ?? 0, input);
+            if (success)
+            {
+                var updatedGame = await _client.Find(GameId ?? 0);
+                if (updatedGame != null)
+                {
+                    _game = updatedGame; // Aktualizujte informace o hře
+                    var updatedBoard = await _client.GetBoard(_game.Id);
+                    if (updatedBoard != null)
+                    {
+                        Board = updatedBoard; // Aktualizujte herní pole
+                        StateHasChanged(); // Vyžádejte aktualizaci UI
+                    }
+                    else
+                    {
+                        // Zpracujte případ, kdy se nepodaří načíst nový stav herního pole
+                        Console.WriteLine("Nepodařilo se načíst aktualizované herní pole.");
+                    }
+                }
+            }
+            else
+            {
+                ShowSnackbar("Nepodařilo se provést akci.");
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowSnackbar($"Chyba: {ex.Message}");
+        }
     }
+
+
+    private void ShowSnackbar(string message)
+    {
+        _snackbar.Add(message, Severity.Normal, config =>
+        {
+            config.ShowCloseIcon = true; // Zobrazit ikonu pro zavření snackbaru
+            config.VisibleStateDuration = 5000; // Doba zobrazení snackbaru v milisekundách (5000 ms = 5 sekund)
+            config.HideTransitionDuration = 500; // Doba trvání animace skrytí
+            config.ShowTransitionDuration = 500; // Doba trvání animace zobrazení
+        });
+    }
+
 
     private string GetCellDisplay(int row, int col)
     {
@@ -106,5 +166,23 @@ else
             return "💣";
         }
         return cell.MinesCount > 0 ? cell.MinesCount.ToString() : "";
+    }
+
+    private Color GetButtonColor(GameFieldDto cell)
+    {
+        if (cell == null)
+        {
+            return Color.Default; // Výchozí barva pro neinicializovaná nebo neplatná pole
+        }
+        if (!cell.IsRevealed)
+        {
+            return Color.Secondary; // Barva pro neodhalená pole
+        }
+        if (cell.HasMine)
+        {
+            return Color.Error; // Barva pro pole s minou
+        }
+
+        return Color.Success; // Barva pro odhalená bezpečná pole
     }
 }
