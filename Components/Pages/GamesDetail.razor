@@ -26,12 +26,12 @@ else
         <MudItem xs="12" Class="custom-grid-item">
             @for (int col = 0; col < 10; col++)
             {
-                int localCol = col; // Vytvoření lokální kopie pro col
+                int localCol = col; 
                 if (Board != null && Board.GetLength(0) > localRow && Board.GetLength(1) > localCol)
                 {
                     var cell = Board[localRow, localCol];
                     var cellDisplay = GetCellDisplay(localRow, localCol);
-                    var buttonColor = GetButtonColor(cell); // Použití metody GetButtonColor pro určení barvy tlačítka
+                    var buttonColor = GetButtonColor(cell); 
 
                     <MudButton OnClick="@(() => OnCellClick(localRow, localCol))"
                                Color="@buttonColor"
@@ -76,6 +76,24 @@ else
     {
         _game = await _client.Find(GameId ?? 0);
         if (_game is null)
+        {
+            _navigationManager.NavigateTo("game/not-found");
+        }
+        else
+        {
+            // Načtení aktuálního stavu herního pole pro danou hru
+            Board = await _client.GetBoard(_game.Id);
+            if (Board == null)
+            {
+
+                ShowSnackbar("Nepodařilo se načíst herní pole.");
+            }
+        }
+        _loading = false;
+
+
+        _game = await _client.Find(GameId ?? 0);
+        if (_game is null)
             _navigationManager.NavigateTo("game/not-found");
         Board = new GameFieldDto[10, 10];
         _loading = false;
@@ -103,17 +121,16 @@ else
                 var updatedGame = await _client.Find(GameId ?? 0);
                 if (updatedGame != null)
                 {
-                    _game = updatedGame; // Aktualizujte informace o hře
+                    _game = updatedGame; 
                     var updatedBoard = await _client.GetBoard(_game.Id);
                     if (updatedBoard != null)
                     {
-                        Board = updatedBoard; // Aktualizujte herní pole
-                        StateHasChanged(); // Vyžádejte aktualizaci UI
+                        Board = updatedBoard;
+                        StateHasChanged(); 
                     }
                     else
                     {
-                        // Zpracujte případ, kdy se nepodaří načíst nový stav herního pole
-                        Console.WriteLine("Nepodařilo se načíst aktualizované herní pole.");
+                        ShowSnackbar("Nepodařilo se načíst aktualizované herní pole.");
                     }
                 }
             }
@@ -131,7 +148,7 @@ else
 
     private void ShowSnackbar(string message)
     {
-        _snackbar.Add(message, Severity.Normal, config =>
+        _snackbar.Add(message, Severity.Error, config =>
         {
             config.ShowCloseIcon = true; // Zobrazit ikonu pro zavření snackbaru
             config.VisibleStateDuration = 5000; // Doba zobrazení snackbaru v milisekundách (5000 ms = 5 sekund)
@@ -154,7 +171,7 @@ else
         // Kontrola, zda je buňka null
         if (cell == null)
         {
-            return ""; // Buňka je null, vrátí prázdný řetězec
+            return ""; 
         }
 
         if (!cell.IsRevealed)

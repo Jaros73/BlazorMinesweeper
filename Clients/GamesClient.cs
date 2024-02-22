@@ -10,10 +10,10 @@ namespace BlazorMinesweeper.Clients;
 public class GamesClient
 {
     private readonly HttpClient _httpClient;
-    private readonly string Endpoint1 = "/Game"; //  Endpoint na vytvoření nové hry
-    private readonly string Endpoint2 = "/Game/active"; // Endpoint na vylistování všech dostupných her
-    private readonly string Endpoint3 = "/GameField/"; //Endpoint na získání herního pole
-    private readonly string Endpoint4 = "/GameField/{0}/click"; //Endpoint na získání políček pro danou hru
+    private readonly string EndpointGame = "/Game"; //  Endpoint na vytvoření nové hry
+    private readonly string EndpointActive = "/Game/active"; // Endpoint na vylistování všech dostupných her
+    private readonly string EndpointField = "/GameField/"; //Endpoint na získání herního pole
+    private readonly string EndpointClick = "/GameField/{0}/click"; //Endpoint na získání políček pro danou hru
     private readonly JsonSerializerOptions _options = new(JsonSerializerDefaults.Web);
 
     public GamesClient(HttpClient httpClient, IOptions<ServiceUrlConfig> config )
@@ -21,7 +21,8 @@ public class GamesClient
 
     public async Task<GameDto?> Find(int id)
     {
-        var a = await _httpClient.GetAsync($"{Endpoint1}/{id}");
+        var a = await _httpClient.GetAsync(string.Format("{0}/{1}", EndpointGame, id));
+
         var aa = await a.Content.ReadAsStringAsync();
         if (!a.IsSuccessStatusCode)
             return null;
@@ -31,12 +32,12 @@ public class GamesClient
 
     public async Task<GameDto[]?> FindAll()
     {
-        return await _httpClient.GetFromJsonAsync<GameDto[]?>(Endpoint2);
+        return await _httpClient.GetFromJsonAsync<GameDto[]?>(EndpointActive);
     }
 
     public async Task<int?> Create(GameInputDto game)
     {
-        var result = await _httpClient.PostAsJsonAsync(Endpoint1, game);
+        var result = await _httpClient.PostAsJsonAsync(EndpointGame, game);
         if(!result.IsSuccessStatusCode)
             throw new Exception(await result.Content.ReadAsStringAsync());
 
@@ -50,7 +51,7 @@ public class GamesClient
     public async Task<bool> ClickGame(int gameId, GameClickDto input)
     {
         // Sestavení finální URL vložením gameId do templatu
-        string endpoint = string.Format(Endpoint4, gameId);
+        string endpoint = string.Format(EndpointClick, gameId);
 
         // Volání API s dynamicky sestavenou URL
         var result = await _httpClient.PostAsJsonAsync(endpoint, input);
@@ -59,7 +60,8 @@ public class GamesClient
 
     public async Task<GameFieldDto[,]> GetBoard(int gameId)
     {
-        var response = await _httpClient.GetAsync($"{Endpoint3}{gameId}");
+        var response = await _httpClient.GetAsync(string.Format("{0}/{1}", EndpointField, gameId));
+
         if (response.IsSuccessStatusCode)
         {
             var boardJson = await response.Content.ReadAsStringAsync();
