@@ -1,8 +1,11 @@
-﻿using System.Text.Json;
+﻿using System.Text;
+using System.Text.Json;
 using BlazorMinesweeper.Components.Pages;
 using BlazorMinesweeper.Configurations;
 using BlazorMinesweeper.Dtos;
 using Microsoft.Extensions.Options;
+using System.Net.Http.Headers;
+
 
 
 namespace BlazorMinesweeper.Clients;
@@ -10,6 +13,7 @@ namespace BlazorMinesweeper.Clients;
 public class GamesClient
 {
     private readonly HttpClient _httpClient;
+
     private readonly string EndpointGame = "/Game"; //  Endpoint na vytvoření nové hry
     private readonly string EndpointActive = "/Game/active"; // Endpoint na vylistování všech dostupných her
     private readonly string EndpointField = "/GameField/"; //Endpoint na získání herního pole
@@ -17,7 +21,15 @@ public class GamesClient
     private readonly JsonSerializerOptions _options = new(JsonSerializerDefaults.Web);
 
     public GamesClient(HttpClient httpClient, IOptions<ServiceUrlConfig> config )
-    { _httpClient = httpClient; _httpClient.BaseAddress = new Uri(config.Value.GamesService); }
+    { _httpClient = httpClient; 
+      _httpClient.BaseAddress = new Uri(config.Value.GamesService);
+
+        var authenticationString = "games-app:Karel*";
+        var base64EncodedAuthenticationString = Convert.ToBase64String(
+            Encoding.UTF8.GetBytes(authenticationString) );
+        _httpClient.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Basic", base64EncodedAuthenticationString);
+    }
 
     public async Task<GameDto?> Find(int id)
     {
